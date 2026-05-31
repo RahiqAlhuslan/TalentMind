@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Typing Pressure Test — Cognitive Assessment</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@400;700;900&display=swap');
+
+:root {
+  --bg: #f5f0e8;
+  --paper: #faf7f2;
+  --ink: #1a1410;
+  --ink-muted: #8a7d6b;
+  --accent: #c8401a;
+  --accent2: #1a6bc8;
+  --accent3: #2a9c5a;
+  --warn: #d4880a;
+  --border: #d8cfc0;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Unbounded', sans-serif;
+  --radius: 4px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Paper texture overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Scanlines */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.015) 3px,
+    rgba(0,0,0,0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ─── SCREENS ─── */
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 32px;
+  z-index: 10;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.98); }
+
+/* ─── INTRO ─── */
+#intro {
+  gap: 0;
+  text-align: left;
+  align-items: flex-start;
+  max-width: 640px;
+  width: 100%;
+}
+
+.intro-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 4px 10px;
+  margin-bottom: 24px;
+  display: inline-block;
+}
+
+.intro-title {
+  font-family: var(--display);
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+.intro-title em {
+  font-style: normal;
+  color: var(--accent);
+  position: relative;
+}
+.intro-title em::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 2px;
+  width: 100%; height: 3px;
+  background: var(--accent);
+}
+
+.intro-divider {
+  width: 100%; height: 1px;
+  background: var(--border);
+  margin: 28px 0;
+}
+
+.intro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.intro-card {
+  border: 1px solid var(--border);
+  background: var(--paper);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+}
+.intro-card .ic-head {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+}
+.intro-card .ic-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.intro-desc {
+  font-size: 13px;
+  color: var(--ink-muted);
+  line-height: 1.7;
+  margin-bottom: 28px;
+  max-width: 560px;
+}
+
+.intro-bottom {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.btn-start {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 14px 32px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-start:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(200,64,26,0.3);
+}
+
+.diff-pills {
+  display: flex;
+  gap: 8px;
+}
+.diff-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-muted);
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.diff-pill:hover { border-color: var(--ink-muted); color: var(--ink); }
+.diff-pill.active { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+
+/* ─── GAME SCREEN ─── */
+#game {
+  padding: 0;
+  gap: 0;
+  justify-content: flex-start;
+  align-items: stretch;
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* HUD */
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 50;
+}
+.hud-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hud-val {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.hud-val.danger { color: var(--accent); }
+.hud-val.ok { color: var(--accent3); }
+.hud-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Pressure bar */
+.pressure-bar-wrap {
+  flex: 1;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.pressure-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.pressure-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.pressure-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.2s ease, background 0.3s ease;
+  background: var(--accent3);
+}
+
+/* Typing area */
+.typing-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Prompt text */
+.prompt-wrap {
+  width: 100%;
+  max-width: 640px;
+  margin-bottom: 28px;
+  position: relative;
+  z-index: 5;
+}
+.prompt-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+.prompt-text {
+  font-family: var(--mono);
+  font-size: clamp(14px, 2.2vw, 20px);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  word-break: break-word;
+}
+.prompt-text .char {
+  position: relative;
+  transition: color 0.1s;
+}
+.prompt-text .char.correct { color: var(--accent3); }
+.prompt-text .char.incorrect {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+.prompt-text .char.cursor {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 1px;
+  animation: blink 0.8s step-end infinite;
+}
+.prompt-text .char.pending { color: var(--border); }
+
+@keyframes blink {
+  50% { background: transparent; color: var(--ink); }
+}
+
+/* Input field */
+.input-wrap {
+  width: 100%;
+  max-width: 640px;
+  position: relative;
+  z-index: 5;
+}
+.type-input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: clamp(14px, 2vw, 18px);
+  background: var(--paper);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s;
+  letter-spacing: 0.04em;
+}
+.type-input:focus { border-color: var(--ink); }
+.type-input.error { border-color: var(--accent); background: #fff5f5; animation: inputShake 0.2s ease; }
+
+@keyframes inputShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Phase countdown overlay */
+.countdown-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(245,240,232,0.92);
+  backdrop-filter: blur(3px);
+  z-index: 30;
+  gap: 12px;
+  transition: opacity 0.3s;
+}
+.countdown-overlay.hidden { opacity: 0; pointer-events: none; }
+.co-num {
+  font-family: var(--display);
+  font-size: 96px;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1;
+  animation: coNum 0.4s ease;
+}
+@keyframes coNum { from { transform: scale(1.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.co-label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Round progress dots */
+.round-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.rdot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.2s;
+}
+.rdot.done { background: var(--accent3); }
+.rdot.active { background: var(--ink); transform: scale(1.3); }
+.rdot.fail { background: var(--accent); }
+
+/* ─── POPUPS (distractors) ─── */
+.popup {
+  position: fixed;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  z-index: 200;
+  max-width: 240px;
+  font-size: 12px;
+  animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  cursor: pointer;
+  user-select: none;
+}
+.popup-title {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.popup-body { color: var(--ink-muted); line-height: 1.5; }
+.popup-close {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 14px;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.popup.type-warn { border-color: var(--warn); border-left: 3px solid var(--warn); }
+.popup.type-error { border-color: var(--accent); border-left: 3px solid var(--accent); }
+.popup.type-info { border-color: var(--accent2); border-left: 3px solid var(--accent2); }
+
+@keyframes popIn {
+  from { transform: scale(0.7) translateY(20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Screen shake */
+@keyframes shakeLight {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  20% { transform: translate(-3px,2px) rotate(-0.3deg); }
+  40% { transform: translate(3px,-2px) rotate(0.3deg); }
+  60% { transform: translate(-2px,3px) rotate(-0.2deg); }
+  80% { transform: translate(2px,-1px) rotate(0.2deg); }
+}
+@keyframes shakeMed {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  15% { transform: translate(-6px,4px) rotate(-0.6deg); }
+  35% { transform: translate(6px,-4px) rotate(0.6deg); }
+  55% { transform: translate(-5px,5px) rotate(-0.5deg); }
+  75% { transform: translate(5px,-3px) rotate(0.4deg); }
+}
+@keyframes shakeHard {
+  0%,100% { transform: translate(0,0) rotate(0deg); }
+  10% { transform: translate(-9px,6px) rotate(-1deg); }
+  30% { transform: translate(9px,-6px) rotate(1deg); }
+  50% { transform: translate(-7px,8px) rotate(-0.8deg); }
+  70% { transform: translate(8px,-5px) rotate(0.8deg); }
+  90% { transform: translate(-5px,4px) rotate(-0.5deg); }
+}
+.shake-light { animation: shakeLight 0.4s ease; }
+.shake-med   { animation: shakeMed 0.45s ease; }
+.shake-hard  { animation: shakeHard 0.5s ease; }
+
+/* Glitch text flash */
+@keyframes glitchFlash {
+  0%,100% { opacity: 1; filter: none; }
+  20% { opacity: 0.7; filter: hue-rotate(90deg) saturate(3); transform: translateX(2px); }
+  40% { opacity: 0.9; filter: hue-rotate(-90deg); transform: translateX(-2px); }
+  60% { opacity: 0.8; filter: saturate(0); }
+}
+
+/* Timer blink urgent */
+@keyframes urgentBlink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.urgent { animation: urgentBlink 0.5s infinite; color: var(--accent) !important; }
+
+/* ─── RESULTS ─── */
+#results {
+  gap: 0;
+  max-width: 640px;
+  width: 100%;
+  align-items: flex-start;
+  padding: 40px 32px;
+}
+
+.res-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent3);
+  border: 1px solid var(--accent3);
+  padding: 4px 10px;
+  margin-bottom: 20px;
+  display: inline-block;
+}
+
+.res-title {
+  font-family: var(--display);
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-bottom: 6px;
+}
+.res-subtitle {
+  font-size: 12px;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 28px;
+}
+
+.res-divider {
+  width: 100%; height: 1px;
+  background: var(--border);
+  margin-bottom: 24px;
+}
+
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+.res-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.res-card .rc-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.res-card .rc-val {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.res-card .rc-sub {
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+.res-card .rc-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.res-card .rc-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1.2s cubic-bezier(0.22,1,0.36,1);
+}
+
+/* Stress chart */
+.stress-chart {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.stress-chart-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 12px;
+}
+.stress-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 64px;
+}
+.stress-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.stress-bar-fill {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  transition: height 1s ease;
+  min-height: 2px;
+}
+.stress-bar-label {
+  font-size: 8px;
+  color: var(--ink-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.res-buttons { display: flex; gap: 12px; }
+.btn-res-primary {
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 13px 28px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.btn-res-primary:hover { background: var(--accent); }
+.btn-res-ghost {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  color: var(--ink-muted);
+  border: 1px solid var(--border);
+  padding: 12px 20px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.btn-res-ghost:hover { border-color: var(--ink-muted); color: var(--ink); }
+
+/* Phase flash banner */
+.phase-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: var(--accent);
+  color: #fff;
+  text-align: center;
+  padding: 8px;
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  z-index: 500;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+.phase-banner.show { transform: translateY(0); }
+
+/* Vignette stress effect */
+.vignette {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  transition: opacity 0.5s;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(200,64,26,0.25) 100%);
+}
+
+@media (max-width: 600px) {
+  .res-grid { grid-template-columns: 1fr 1fr; }
+  .intro-grid { grid-template-columns: 1fr 1fr; }
+  .intro-bottom { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="vignette" id="vignette"></div>
+<div class="phase-banner" id="phase-banner"></div>
+
+<!-- ═══════════════════ INTRO ═══════════════════ -->
+<div class="screen" id="intro">
+  <h1 class="intro-title">Adaptive<br><em>Typing</em><br>Pressure Test</h1>
+
+  <div class="intro-divider"></div>
+
+  <p class="intro-desc">
+    A text passage appears on screen — type it as fast and accurately as you can before the timer runs out. Each round gets harder: the screen may shake, unexpected popups will appear, and you'll have less time to finish.
+  </p>
+
+  <div class="intro-grid">
+    <div class="intro-card">
+      <div class="ic-head">Step 1</div>
+      <div class="ic-val">Read the text on screen</div>
+    </div>
+    <div class="intro-card">
+      <div class="ic-head">Step 2</div>
+      <div class="ic-val">Type it before time runs out</div>
+    </div>
+    <div class="intro-card">
+      <div class="ic-head">Step 3</div>
+      <div class="ic-val">Stay focused through distractions</div>
+    </div>
+    <div class="intro-card">
+      <div class="ic-head">Step 4</div>
+      <div class="ic-val">Complete all rounds to see your results</div>
+    </div>
+  </div>
+
+  <div class="intro-bottom">
+    <button class="btn-start" id="btn-start">Begin Test →</button>
+    <div class="diff-pills">
+      <button class="diff-pill active" data-d="easy">Easy</button>
+      <button class="diff-pill" data-d="medium">Medium</button>
+      <button class="diff-pill" data-d="hard">Hard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ GAME ═══════════════════ -->
+<div class="screen hidden" id="game">
+  <div class="hud">
+    <div class="hud-stat">
+      <div class="hud-val" id="hud-wpm">0</div>
+      <div class="hud-label">WPM</div>
+    </div>
+
+    <div class="pressure-bar-wrap">
+      <div class="pressure-label">Pressure Level</div>
+      <div class="pressure-track">
+        <div class="pressure-fill" id="pressure-fill" style="width:0%"></div>
+      </div>
+      <div class="round-dots" id="round-dots"></div>
+    </div>
+
+    <div class="hud-stat">
+      <div class="hud-val" id="hud-timer">30</div>
+      <div class="hud-label">Seconds</div>
+    </div>
+  </div>
+
+  <div class="typing-area" id="typing-area">
+    <div class="countdown-overlay" id="countdown-overlay">
+      <div class="co-num" id="co-num">3</div>
+      <div class="co-label">Get ready…</div>
+    </div>
+
+    <div class="prompt-wrap">
+      <div class="prompt-label">Type the text below ↓</div>
+      <div class="prompt-text" id="prompt-text"></div>
+    </div>
+
+    <div class="input-wrap">
+      <input class="type-input" id="type-input" type="text"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        placeholder="Start typing…" disabled />
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ RESULTS ═══════════════════ -->
+<div class="screen hidden" id="results">
+  <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:20px; max-width:480px;">
+    <div style="font-size:56px;">✓</div>
+    <div style="font-family:var(--display); font-size:clamp(28px,5vw,42px); font-weight:900; letter-spacing:-0.03em; line-height:1.1;">Test Complete</div>
+    <div style="font-size:13px; color:var(--ink-muted); line-height:1.7;">
+      Thank you for completing the assessment.<br>Your responses have been recorded.
+    </div>
+    <div style="width:100%; height:1px; background:var(--border);"></div>
+    <button class="btn-res-ghost" id="btn-home">← Back to Home</button>
+  </div>
+</div>
+
+<script>
+// ── GameHub Backend Integration ──
+const GAMEHUB_API = 'https://graduation-tawny-beta.vercel.app';
+const GAME_ID_HUB = 'typing-pressure-test';
+let attemptId = null;
+const getUserId = () => { const p = new URLSearchParams(window.location.search); return p.get('userId') ? parseInt(p.get('userId')) : null; };
+async function startAttempt() {
+  try {
+    const res = await fetch(`${GAMEHUB_API}/api/attempts`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: GAME_ID_HUB, userId: getUserId() })
+    });
+    const data = await res.json();
+    attemptId = data.attempt?.id || null;
+  } catch(e) { console.warn('GameHub: could not start attempt', e); }
+}
+async function saveResult(payload) {
+  try {
+    await fetch(`${GAMEHUB_API}/api/results`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: GAME_ID_HUB, attemptId, userId: getUserId(), ...payload })
+    });
+  } catch(e) { console.warn('GameHub: could not save result', e); }
+}
+
+(function () {
+  /* ─── Prompts ─── */
+  const PROMPTS = [
+    "the quick brown fox jumps over the lazy dog near the riverbank",
+    "science requires patience and careful observation of natural phenomena",
+    "bright stars guide travelers through the vast darkness of the night",
+    "a gentle breeze carries the scent of pine across the mountain valley",
+    "practice builds skill over time through focused and deliberate effort",
+    "curiosity opens doors to knowledge that logic alone cannot unlock",
+    "the mind adapts quickly when challenged by unexpected circumstances",
+    "deep focus allows complex problems to dissolve into simple solutions",
+    "rhythm and timing are fundamental to every physical performance",
+    "precise coordination of hand and eye defines exceptional motor skill",
+  ];
+
+  const DIFF_CFG = {
+    easy:   { rounds: 4, baseTime: 30, shakeLevel: 1, popupFreq: 8000,  pressureStep: 20 },
+    medium: { rounds: 5, baseTime: 25, shakeLevel: 2, popupFreq: 5000,  pressureStep: 25 },
+    hard:   { rounds: 6, baseTime: 20, shakeLevel: 3, popupFreq: 3000,  pressureStep: 30 },
+  };
+
+  const POPUP_TEMPLATES = [
+    { type:'warn',  title:'⚠ Warning',          body:'System memory critically low. Save your work immediately.' },
+    { type:'error', title:'✕ Error 0x4F2',       body:'Unexpected kernel exception. Restart recommended.' },
+    { type:'info',  title:'ℹ Update Available',  body:'A new version is ready. Click to install now.' },
+    { type:'warn',  title:'⚡ Battery Critical',  body:'5% remaining. Connect power source now.' },
+    { type:'error', title:'🔒 Security Alert',    body:'Unknown device connected to your network.' },
+    { type:'info',  title:'📧 New Messages (14)', body:'You have unread emails waiting for response.' },
+    { type:'warn',  title:'⚠ Overheating',       body:'CPU temperature is dangerously high.' },
+    { type:'error', title:'✕ Connection Lost',   body:'Server disconnected. Attempting to reconnect…' },
+    { type:'info',  title:'🔔 Reminder',         body:'Your meeting starts in 5 minutes.' },
+    { type:'warn',  title:'⚠ Disk Full',         body:'Storage space is 99% full. Delete files now.' },
+  ];
+
+  /* ─── State ─── */
+  let difficulty = 'easy';
+  let cfg = DIFF_CFG.easy;
+  let round = 0;
+  let currentPrompt = '';
+  let typedCorrect = 0;
+  let totalTyped = 0;
+  let errors = 0;
+  let startTime = 0;
+  let timerInterval = null;
+  let popupInterval = null;
+  let timeLeft = 30;
+  let wpmSamples = [];
+  let roundData = [];
+  let lastErrorTime = 0;
+  let recoverySamples = [];
+  let keystrokeTimes = [];
+  let pressureLevel = 0;
+  let activePopups = [];
+  let roundPromptIdx = 0;
+
+  /* ─── DOM ─── */
+  const introEl   = document.getElementById('intro');
+  const gameEl    = document.getElementById('game');
+  const resultsEl = document.getElementById('results');
+  const promptEl  = document.getElementById('prompt-text');
+  const inputEl   = document.getElementById('type-input');
+  const coOverlay = document.getElementById('countdown-overlay');
+  const coNum     = document.getElementById('co-num');
+  const hudWPM    = document.getElementById('hud-wpm');
+  const hudTimer  = document.getElementById('hud-timer');
+  const pressFill = document.getElementById('pressure-fill');
+  const roundDots = document.getElementById('round-dots');
+  const vignette  = document.getElementById('vignette');
+  const phaseBanner = document.getElementById('phase-banner');
+
+  /* ─── Difficulty ─── */
+  document.querySelectorAll('.diff-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diff-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      difficulty = btn.dataset.d;
+      cfg = DIFF_CFG[difficulty];
+    });
+  });
+
+  document.getElementById('btn-start').addEventListener('click', startGame);
+  document.getElementById('btn-home').addEventListener('click', () => showScreen('intro'));
+
+  /* ─── Screen helper ─── */
+  function showScreen(name) {
+    [introEl, gameEl, resultsEl].forEach(el => el.classList.add('hidden'));
+    ({ intro: introEl, game: gameEl, results: resultsEl })[name].classList.remove('hidden');
+    if (name === 'intro') {
+      clearAllPopups();
+      if (timerInterval) clearInterval(timerInterval);
+      if (popupInterval) clearInterval(popupInterval);
+      vignette.style.opacity = '0';
+    }
+  }
+
+  /* ─── Start game ─── */
+  function startGame() {
+    cfg = DIFF_CFG[difficulty];
+    round = 0;
+    roundData = [];
+    roundPromptIdx = 0;
+    pressureLevel = 0;
+    pressFill.style.width = '0%';
+    pressFill.style.background = 'var(--accent3)';
+    buildDots();
+    startAttempt();
+    showScreen('game');
+    setTimeout(() => nextRound(), 100);
+  }
+
+  function buildDots() {
+    roundDots.innerHTML = '';
+    for (let i = 0; i < cfg.rounds; i++) {
+      const d = document.createElement('div');
+      d.className = 'rdot' + (i === 0 ? ' active' : '');
+      d.id = `dot-${i}`;
+      roundDots.appendChild(d);
+    }
+  }
+
+  function updateDot(idx, state) {
+    const d = document.getElementById(`dot-${idx}`);
+    if (d) { d.className = `rdot ${state}`; }
+  }
+
+  /* ─── Next round ─── */
+  function nextRound() {
+    round++;
+    errors = 0;
+    typedCorrect = 0;
+    totalTyped = 0;
+    wpmSamples = [];
+    keystrokeTimes = [];
+    recoverySamples = [];
+
+    // Pick prompt
+    const pIdx = (roundPromptIdx++) % PROMPTS.length;
+    currentPrompt = PROMPTS[pIdx];
+
+    // Increase pressure per round
+    pressureLevel = Math.min(100, (round - 1) * cfg.pressureStep);
+    updatePressureUI();
+
+    // Update dot
+    buildDots();
+    for (let i = 0; i < round - 1; i++) updateDot(i, 'done');
+    updateDot(round - 1, 'active');
+
+    // Render prompt chars
+    renderPrompt();
+    inputEl.value = '';
+    inputEl.disabled = true;
+
+    // Countdown
+    coOverlay.classList.remove('hidden');
+    let c = 3;
+    coNum.textContent = c;
+    const ci = setInterval(() => {
+      c--;
+      if (c <= 0) {
+        clearInterval(ci);
+        coNum.textContent = 'GO!';
+        setTimeout(() => {
+          coOverlay.classList.add('hidden');
+          beginRound();
+        }, 500);
+      } else {
+        coNum.textContent = c;
+      }
+    }, 1000);
+  }
+
+  function updatePressureUI() {
+    pressFill.style.width = `${pressureLevel}%`;
+    if (pressureLevel < 35) pressFill.style.background = 'var(--accent3)';
+    else if (pressureLevel < 65) pressFill.style.background = 'var(--warn)';
+    else pressFill.style.background = 'var(--accent)';
+    vignette.style.opacity = (pressureLevel / 100 * 0.7).toString();
+  }
+
+  /* ─── Begin round ─── */
+  function beginRound() {
+    inputEl.disabled = false;
+    inputEl.focus();
+    startTime = Date.now();
+    timeLeft = cfg.baseTime - (round - 1) * 2; // time decreases each round
+    hudTimer.textContent = timeLeft;
+    hudTimer.classList.remove('urgent');
+
+    // Timer
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      hudTimer.textContent = timeLeft;
+      if (timeLeft <= 5) hudTimer.classList.add('urgent');
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        endRound(false);
+      }
+    }, 1000);
+
+    // Popup distractor
+    const pFreq = Math.max(1500, cfg.popupFreq - (round - 1) * 600);
+    popupInterval = setInterval(() => spawnPopup(), pFreq);
+
+    // Screen shake schedule
+    scheduleShakes();
+  }
+
+  /* ─── Prompt rendering ─── */
+  function renderPrompt(typed) {
+    typed = typed || '';
+    let html = '';
+    for (let i = 0; i < currentPrompt.length; i++) {
+      if (i < typed.length) {
+        if (typed[i] === currentPrompt[i]) {
+          html += `<span class="char correct">${esc(currentPrompt[i])}</span>`;
+        } else {
+          html += `<span class="char incorrect">${esc(currentPrompt[i])}</span>`;
+        }
+      } else if (i === typed.length) {
+        html += `<span class="char cursor">${esc(currentPrompt[i])}</span>`;
+      } else {
+        html += `<span class="char pending">${esc(currentPrompt[i])}</span>`;
+      }
+    }
+    promptEl.innerHTML = html;
+  }
+  function esc(c) { return c === ' ' ? '&nbsp;' : c.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  /* ─── Input handler ─── */
+  inputEl.addEventListener('input', (e) => {
+    if (inputEl.disabled) return;
+    const val = inputEl.value;
+    const now = Date.now();
+    keystrokeTimes.push(now);
+
+    renderPrompt(val);
+    totalTyped = val.length;
+
+    // Count correct at current position
+    let correct = 0;
+    for (let i = 0; i < val.length && i < currentPrompt.length; i++) {
+      if (val[i] === currentPrompt[i]) correct++;
+    }
+
+    // Error detection
+    if (val.length > 0 && val[val.length - 1] !== currentPrompt[val.length - 1]) {
+      errors++;
+      inputEl.classList.remove('error');
+      void inputEl.offsetWidth;
+      inputEl.classList.add('error');
+      setTimeout(() => inputEl.classList.remove('error'), 250);
+      // shake on error based on pressure
+      if (pressureLevel > 30) triggerShake();
+      // recovery timing
+      lastErrorTime = now;
+    } else if (lastErrorTime > 0) {
+      recoverySamples.push(now - lastErrorTime);
+      lastErrorTime = 0;
+    }
+
+    // WPM sample
+    const elapsed = (now - startTime) / 60000;
+    if (elapsed > 0) {
+      const wpm = Math.round(correct / 5 / elapsed);
+      wpmSamples.push(wpm);
+      hudWPM.textContent = wpm;
+    }
+
+    // Completed?
+    if (val.length >= currentPrompt.length) {
+      clearInterval(timerInterval);
+      clearInterval(popupInterval);
+      clearAllPopups();
+      endRound(true);
+    }
+  });
+
+  /* ─── End round ─── */
+  function endRound(completed) {
+    clearInterval(timerInterval);
+    clearInterval(popupInterval);
+    clearAllPopups();
+    inputEl.disabled = true;
+    hudTimer.classList.remove('urgent');
+
+    const val = inputEl.value;
+    let correct = 0;
+    for (let i = 0; i < val.length && i < currentPrompt.length; i++) {
+      if (val[i] === currentPrompt[i]) correct++;
+    }
+    const accuracy = totalTyped > 0 ? Math.round(correct / Math.max(totalTyped, 1) * 100) : 0;
+    const avgWPM = wpmSamples.length ? Math.round(wpmSamples.reduce((a,b)=>a+b,0)/wpmSamples.length) : 0;
+    const avgRecovery = recoverySamples.length ? Math.round(recoverySamples.reduce((a,b)=>a+b,0)/recoverySamples.length) : 0;
+
+    // Keystroke rhythm stability (lower std dev = better)
+    let stability = 100;
+    if (keystrokeTimes.length > 3) {
+      const intervals = [];
+      for (let i = 1; i < keystrokeTimes.length; i++) intervals.push(keystrokeTimes[i] - keystrokeTimes[i-1]);
+      const mean = intervals.reduce((a,b)=>a+b,0)/intervals.length;
+      const variance = intervals.reduce((a,b)=>a+(b-mean)**2,0)/intervals.length;
+      const stdDev = Math.sqrt(variance);
+      stability = Math.max(0, Math.round(100 - stdDev / 3));
+    }
+
+    roundData.push({ round, accuracy, avgWPM, errors, avgRecovery, stability, completed });
+
+    if (round >= cfg.rounds) {
+      setTimeout(() => showCompletion(), 800);
+    } else {
+      // Flash banner
+      showBanner(`Round ${round} done! Next: more pressure →`);
+      setTimeout(() => {
+        pressureLevel = Math.min(100, pressureLevel + cfg.pressureStep);
+        updatePressureUI();
+        nextRound();
+      }, 1500);
+    }
+  }
+
+  function showBanner(msg) {
+    phaseBanner.textContent = msg;
+    phaseBanner.classList.add('show');
+    setTimeout(() => phaseBanner.classList.remove('show'), 1400);
+  }
+
+  /* ─── Shake ─── */
+  function triggerShake() {
+    const area = document.getElementById('typing-area');
+    const lvl = cfg.shakeLevel + Math.floor(pressureLevel / 40);
+    const cls = ['shake-light','shake-med','shake-hard'][Math.min(2, lvl - 1)];
+    area.classList.remove('shake-light','shake-med','shake-hard');
+    void area.offsetWidth;
+    area.classList.add(cls);
+    setTimeout(() => area.classList.remove(cls), 600);
+  }
+
+  function scheduleShakes() {
+    const shakeEvery = Math.max(3000, 9000 - pressureLevel * 50);
+    const jitter = Math.random() * shakeEvery;
+    setTimeout(function doShake() {
+      if (inputEl.disabled) return;
+      triggerShake();
+      setTimeout(doShake, Math.max(2000, shakeEvery + (Math.random()-0.5)*2000));
+    }, jitter);
+  }
+
+  /* ─── Popups ─── */
+  function spawnPopup() {
+    const tpl = POPUP_TEMPLATES[Math.floor(Math.random() * POPUP_TEMPLATES.length)];
+    const popup = document.createElement('div');
+    popup.className = `popup type-${tpl.type}`;
+
+    const maxX = window.innerWidth - 260;
+    const maxY = window.innerHeight - 120;
+    popup.style.left = (60 + Math.random() * (maxX - 60)) + 'px';
+    popup.style.top  = (60 + Math.random() * (maxY - 60)) + 'px';
+
+    popup.innerHTML = `
+      <div class="popup-close">✕</div>
+      <div class="popup-title">${tpl.title}</div>
+      <div class="popup-body">${tpl.body}</div>`;
+
+    popup.querySelector('.popup-close').addEventListener('click', () => popup.remove());
+    popup.addEventListener('click', () => popup.remove());
+
+    document.body.appendChild(popup);
+    activePopups.push(popup);
+
+    // Auto-dismiss after a while
+    const ttl = 4000 + Math.random() * 3000;
+    setTimeout(() => { if (popup.parentNode) popup.remove(); }, ttl);
+  }
+
+  function clearAllPopups() {
+    document.querySelectorAll('.popup').forEach(p => p.remove());
+    activePopups = [];
+  }
+
+  /* ─── Results ─── */
+  function showCompletion() {
+    const avgWPM = roundData.length ? Math.round(roundData.reduce((a,b)=>a+b.avgWPM,0)/roundData.length) : 0;
+    const avgAcc = roundData.length ? Math.round(roundData.reduce((a,b)=>a+b.accuracy,0)/roundData.length) : 0;
+    const totalErrors = roundData.reduce((a,b)=>a+b.errors,0);
+    saveResult({
+      score: avgWPM,
+      accuracy: avgAcc,
+      rawData: { difficulty, avgWPM, avgAccuracy: avgAcc, totalErrors, rounds: roundData }
+    });
+    showScreen('results');
+  }
+
+})();
+</script>
+</body>
+</html>

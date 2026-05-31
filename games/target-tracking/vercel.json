@@ -1,0 +1,9 @@
+{
+  "buildCommand": "",
+  "installCommand": "echo skip",
+  "outputDirectory": ".",
+  "routes": [
+    { "src": "^/$", "dest": "/target_tracking_game.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

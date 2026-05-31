@@ -1,0 +1,8 @@
+{
+  "buildCommand": "",
+  "installCommand": "echo skip",
+  "outputDirectory": ".",
+  "routes": [
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

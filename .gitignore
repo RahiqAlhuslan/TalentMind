@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.vercel/
+.env
+.env.*
+*.log
+.DS_Store
+prisma.config.ts

@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Target Tracking — Cognitive Assessment</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #f0f4ff;
+    --surface: #ffffff;
+    --panel: #ffffff;
+    --border: #d0d8f0;
+    --accent: #4f6ef7;
+    --accent2: #e040a0;
+    --target-color: #4f6ef7;
+    --decoy-color: #9aa5c4;
+    --text: #1a1f3a;
+    --text-muted: #7b87ae;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(79,110,247,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ─── SCREENS ─── */
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    transition: opacity 0.4s ease;
+    z-index: 10;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* ─── INTRO SCREEN ─── */
+  #intro-screen {
+    gap: 32px;
+    text-align: center;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(79,110,247,0.10);
+    border: 1px solid rgba(79,110,247,0.30);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  h1 {
+    font-size: clamp(32px, 6vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    max-width: 440px;
+    line-height: 1.6;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 440px;
+  }
+  .metric-card {
+    background: #f7f9ff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: left;
+    box-shadow: 0 2px 8px rgba(79,110,247,0.06);
+  }
+  .metric-card .icon { font-size: 20px; margin-bottom: 8px; }
+  .metric-card .label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .metric-card .desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Difficulty selector */
+  .difficulty-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .difficulty-row label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .diff-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .diff-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .diff-btn.active {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 100px;
+    padding: 16px 40px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(79,110,247,0.35);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(79,110,247,0.45);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 12px 28px;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* ─── MEMORIZE SCREEN ─── */
+  #memorize-screen {
+    gap: 24px;
+    text-align: center;
+  }
+
+  .phase-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+
+  .mem-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .mem-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 360px;
+    line-height: 1.6;
+  }
+
+  /* Preview circle (for memorize phase) */
+  .preview-container {
+    position: relative;
+    width: 140px; height: 140px;
+  }
+  .preview-orb {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%, rgba(255,255,255,0.3), transparent 60%),
+                radial-gradient(circle at 65% 65%, rgba(0,0,0,0.3), transparent 50%),
+                var(--preview-color, var(--accent));
+    box-shadow: 0 0 40px var(--preview-color, var(--accent)), 0 0 80px rgba(0,229,255,0.2);
+    animation: float 3s ease-in-out infinite;
+  }
+  .preview-ring {
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    border: 2px dashed rgba(0,229,255,0.3);
+    animation: spin 8s linear infinite;
+  }
+  .preview-ring::before {
+    content: '';
+    position: absolute;
+    top: -4px; left: 50%;
+    transform: translateX(-50%);
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Countdown ring */
+  .countdown-ring {
+    position: relative;
+    width: 64px; height: 64px;
+  }
+  .countdown-ring svg { transform: rotate(-90deg); }
+  .countdown-ring .track { stroke: var(--border); fill: none; stroke-width: 3; }
+  .countdown-ring .fill { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+  .countdown-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* ─── GAME SCREEN ─── */
+  #game-screen {
+    gap: 0;
+    padding: 0;
+    justify-content: flex-start;
+  }
+
+  .game-header {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: rgba(240,244,255,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    z-index: 20;
+    flex-shrink: 0;
+  }
+
+  .hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .hud-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .hud-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+
+  /* Timer bar */
+  .timer-bar-wrap {
+    flex: 1;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .timer-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .timer-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Round indicator */
+  .round-pips {
+    display: flex;
+    gap: 6px;
+  }
+  .pip {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s;
+  }
+  .pip.done { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .pip.active { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 1s infinite; }
+  .pip.fail { background: var(--danger); }
+
+  /* Canvas area */
+  .canvas-wrap {
+    flex: 1;
+    width: 100%;
+    max-width: 900px;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  #game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Phase overlay */
+  .phase-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240,244,255,0.88);
+    backdrop-filter: blur(4px);
+    flex-direction: column;
+    gap: 12px;
+    z-index: 15;
+    transition: opacity 0.3s;
+  }
+  .phase-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .overlay-title {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .overlay-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Floating instruction */
+  .instruction-toast {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(79,110,247,0.12);
+    border: 1px solid rgba(79,110,247,0.30);
+    border-radius: 100px;
+    padding: 10px 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+    z-index: 20;
+    animation: slideUp 0.4s ease;
+    pointer-events: none;
+  }
+
+  /* ─── RESULTS SCREEN ─── */
+  #results-screen { gap: 28px; }
+
+  .score-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .score-big {
+    font-size: clamp(64px, 12vw, 96px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .score-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+  }
+
+  .grade-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 100px;
+    padding: 8px 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .grade-S { background: rgba(0,255,157,0.1); border: 1px solid var(--success); color: var(--success); }
+  .grade-A { background: rgba(0,229,255,0.1); border: 1px solid var(--accent); color: var(--accent); }
+  .grade-B { background: rgba(255,184,0,0.1); border: 1px solid var(--warning); color: var(--warning); }
+  .grade-C { background: rgba(255,60,60,0.1); border: 1px solid var(--danger); color: var(--danger); }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+  }
+  .result-card {
+    background: #f7f9ff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: left;
+    box-shadow: 0 2px 8px rgba(79,110,247,0.06);
+  }
+  .result-card .r-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .result-card .r-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .result-card .r-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Segment bars */
+  .seg-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .seg-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(0.22,1,0.36,1);
+  }
+  .seg-fill.accent { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .seg-fill.success { background: var(--success); }
+  .seg-fill.warning { background: var(--warning); }
+
+  .btn-row { display: flex; gap: 12px; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes slideUp {
+    from { transform: translate(-50%, 20px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Click ripple */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    width: 60px; height: 60px;
+    margin: -30px 0 0 -30px;
+    pointer-events: none;
+    animation: rippleAnim 0.5s ease-out forwards;
+    z-index: 25;
+  }
+  @keyframes rippleAnim {
+    from { transform: scale(0); opacity: 1; border: 2px solid var(--accent); }
+    to { transform: scale(2); opacity: 0; border: 2px solid var(--accent); }
+  }
+  .ripple.hit { border-color: var(--success) !important; }
+  .ripple.miss { border-color: var(--danger) !important; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .results-grid { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 28px; }
+    .score-big { font-size: 72px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ INTRO SCREEN ══════════════════ -->
+<div class="screen" id="intro-screen">
+  <div class="badge">Cognitive Assessment · Visual Attention</div>
+
+  <h1>Target<br><span>Tracking</span></h1>
+
+  <p class="subtitle">
+    A moving object challenge designed to measure your visual attention,
+    focus, and sustained tracking ability.
+  </p>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="icon">👁️</div>
+      <div class="label">Visual Attention</div>
+      <div class="desc">Object detection in noise</div>
+    </div>
+    <div class="metric-card">
+      <div class="icon">🎯</div>
+      <div class="label">Focus</div>
+      <div class="desc">Signal vs. distraction</div>
+    </div>
+    <div class="metric-card">
+      <div class="icon">📡</div>
+      <div class="label">Tracking Ability</div>
+      <div class="desc">Sustained motion follow</div>
+    </div>
+    <div class="metric-card">
+      <div class="icon">⏱️</div>
+      <div class="label">Sustained Attention</div>
+      <div class="desc">Consistency over time</div>
+    </div>
+  </div>
+
+  <div class="difficulty-row">
+    <label>Difficulty:</label>
+    <button class="diff-btn active" data-diff="easy">Easy</button>
+    <button class="diff-btn" data-diff="medium">Medium</button>
+    <button class="diff-btn" data-diff="hard">Hard</button>
+  </div>
+
+  <button class="btn-primary" id="start-btn">Start Assessment →</button>
+</div>
+
+<!-- ══════════════════ MEMORIZE SCREEN ══════════════════ -->
+<div class="screen hidden" id="memorize-screen">
+  <div class="phase-label">Phase 1 of 3 — Memorize</div>
+  <div class="mem-title">Remember this object</div>
+  <div class="mem-subtitle" id="mem-subtitle">This is the target you will track.</div>
+
+  <div class="preview-container">
+    <canvas id="preview-canvas" width="140" height="140" style="border-radius:50%;"></canvas>
+    <div class="preview-ring"></div>
+  </div>
+
+  <div class="countdown-ring" id="countdown-ring">
+    <svg viewBox="0 0 64 64" width="64" height="64">
+      <circle class="track" cx="32" cy="32" r="28"/>
+      <circle class="fill" id="count-circle" cx="32" cy="32" r="28"
+        stroke-dasharray="175.9"
+        stroke-dashoffset="0"/>
+    </svg>
+    <div class="countdown-num" id="count-num">3</div>
+  </div>
+</div>
+
+<!-- ══════════════════ GAME SCREEN ══════════════════ -->
+<div class="screen hidden" id="game-screen">
+  <div class="game-header">
+    <div class="hud-item">
+      <div class="hud-value" id="hud-round">1/5</div>
+      <div class="hud-label">Round</div>
+    </div>
+
+    <div class="timer-bar-wrap">
+      <div class="round-pips" id="round-pips"></div>
+      <div class="timer-bar-bg">
+        <div class="timer-bar-fill" id="timer-bar" style="width:100%"></div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em" id="phase-text">Tracking…</div>
+    </div>
+
+    <div class="hud-item">
+      <div class="hud-value" id="hud-score">0</div>
+      <div class="hud-label">Score</div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+
+    <div class="phase-overlay" id="phase-overlay">
+      <div class="overlay-title" id="overlay-title">Get Ready</div>
+      <div class="overlay-sub" id="overlay-sub">Objects are shuffling…</div>
+    </div>
+
+    <div class="instruction-toast" id="toast" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ RESULTS SCREEN ══════════════════ -->
+<div class="screen hidden" id="results-screen">
+  <div class="phase-label">Assessment Complete</div>
+
+  <div class="score-hero">
+    <div class="score-big" id="final-score">—</div>
+    <div class="score-label">Total Score</div>
+  </div>
+
+  <div class="grade-badge" id="grade-badge">—</div>
+
+  <div class="results-grid">
+    <div class="result-card">
+      <div class="r-label">Accuracy</div>
+      <div class="r-val" id="res-accuracy">—</div>
+      <div class="r-sub">Correct selections</div>
+      <div class="seg-bar"><div class="seg-fill accent" id="bar-accuracy" style="width:0%"></div></div>
+    </div>
+    <div class="result-card">
+      <div class="r-label">Avg Response</div>
+      <div class="r-val" id="res-reaction">—</div>
+      <div class="r-sub">Seconds per round</div>
+      <div class="seg-bar"><div class="seg-fill success" id="bar-reaction" style="width:0%"></div></div>
+    </div>
+    <div class="result-card">
+      <div class="r-label">Tracking Score</div>
+      <div class="r-val" id="res-tracking">—</div>
+      <div class="r-sub">Motion consistency</div>
+      <div class="seg-bar"><div class="seg-fill accent" id="bar-tracking" style="width:0%"></div></div>
+    </div>
+    <div class="result-card">
+      <div class="r-label">Sustained Attn</div>
+      <div class="r-val" id="res-sustained">—</div>
+      <div class="r-sub">Performance over time</div>
+      <div class="seg-bar"><div class="seg-fill warning" id="bar-sustained" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-ghost" id="home-btn">Home</button>
+    <button class="btn-primary" id="retry-btn">Play Again →</button>
+  </div>
+</div>
+
+<!-- ══════════════════ SCRIPT ══════════════════ -->
+<script>
+// ── GameHub Backend Integration ──
+const GAMEHUB_API = 'https://graduation-tawny-beta.vercel.app';
+const GAME_ID_HUB = 'target-tracking-game';
+let attemptId = null;
+const getUserId = () => { const p = new URLSearchParams(window.location.search); return p.get('userId') ? parseInt(p.get('userId')) : null; };
+async function startAttempt() {
+  try {
+    const res = await fetch(`${GAMEHUB_API}/api/attempts`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: GAME_ID_HUB, userId: getUserId() })
+    });
+    const data = await res.json();
+    attemptId = data.attempt?.id || null;
+  } catch(e) { console.warn('GameHub: could not start attempt', e); }
+}
+async function saveResult(payload) {
+  try {
+    await fetch(`${GAMEHUB_API}/api/results`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: GAME_ID_HUB, attemptId, userId: getUserId(), ...payload })
+    });
+  } catch(e) { console.warn('GameHub: could not save result', e); }
+}
+
+(function() {
+  /* ── Config ── */
+  const DIFF = {
+    easy:   { objects: 5,  trackTime: 9000, shuffleTime: 2500, speed: 2.5, memTime: 4 },
+    medium: { objects: 7,  trackTime: 7000, shuffleTime: 1800, speed: 3.8, memTime: 3 },
+    hard:   { objects: 10, trackTime: 6000, shuffleTime: 1200, speed: 5.5, memTime: 3 },
+  };
+  const TOTAL_ROUNDS = 5;
+  const SHAPES = ['circle','triangle','diamond','pentagon','hexagon','star','cross','arrow','crescent','parallelogram'];
+  const PALETTE = [
+    '#4f6ef7','#e040a0','#10b981','#f59e0b','#8b5cf6','#ef4444','#0891b2','#d97706'
+  ];
+
+  /* ── State ── */
+  let difficulty = 'easy';
+  let config = DIFF.easy;
+  let round = 0;
+  let score = 0;
+  let roundResults = [];
+  let objects = [];
+  let targetIdx = 0;
+  let targetShape, targetColor;
+  let animFrame = null;
+  let gamePhase = 'idle'; // idle | memorize | shuffle | track | select | feedback
+  let trackStart = 0;
+  let shuffleStart = 0;
+  let mouseMoveCount = 0;
+  let lastMousePos = {x:0,y:0};
+  let mousePathLength = 0;
+  let roundStartTime = 0;
+  let mouseCanvas = {x: -999, y: -999}; // cursor pos in canvas coords
+
+  /* ── DOM ── */
+  const screens = {
+    intro: document.getElementById('intro-screen'),
+    memorize: document.getElementById('memorize-screen'),
+    game: document.getElementById('game-screen'),
+    results: document.getElementById('results-screen'),
+  };
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const phaseOverlay = document.getElementById('phase-overlay');
+  const overlayTitle = document.getElementById('overlay-title');
+  const overlaySub = document.getElementById('overlay-sub');
+  const timerBar = document.getElementById('timer-bar');
+  const hudRound = document.getElementById('hud-round');
+  const hudScore = document.getElementById('hud-score');
+  const roundPips = document.getElementById('round-pips');
+  const phaseText = document.getElementById('phase-text');
+  const toast = document.getElementById('toast');
+  const previewOrb = document.getElementById('preview-orb');
+  const countCircle = document.getElementById('count-circle');
+  const countNum = document.getElementById('count-num');
+
+  /* ── Difficulty buttons ── */
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      difficulty = btn.dataset.diff;
+      config = DIFF[difficulty];
+    });
+  });
+
+  /* ── Start button ── */
+  document.getElementById('start-btn').addEventListener('click', startGame);
+  document.getElementById('retry-btn').addEventListener('click', () => { showScreen('intro'); });
+  document.getElementById('home-btn').addEventListener('click', () => { showScreen('intro'); });
+
+  /* ── Canvas resize ── */
+  function resizeCanvas() {
+    const rect = canvasWrap.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  }
+  window.addEventListener('resize', () => { resizeCanvas(); });
+
+  /* ── Screen helpers ── */
+  function showScreen(name) {
+    Object.entries(screens).forEach(([k, el]) => {
+      el.classList.toggle('hidden', k !== name);
+    });
+    if (name === 'game') {
+      setTimeout(() => { resizeCanvas(); }, 50);
+    }
+  }
+
+  /* ── Object class ── */
+  class Obj {
+    constructor(x, y, shape, color, isTarget) {
+      this.x = x; this.y = y;
+      this.shape = shape; this.color = color;
+      this.isTarget = isTarget;
+      const minSpd = config.speed * 0.5;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = minSpd + Math.random() * config.speed;
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed;
+      this.r = 24;
+      this.highlighted = false;
+      this.highlightTimer = 0;
+      this.bobOffset = Math.random() * Math.PI * 2;
+    }
+    update(dt) {
+      this.x += this.vx;
+      this.y += this.vy;
+      const R = this.r + 4;
+      if (this.x < R) { this.x = R; this.vx = Math.abs(this.vx); }
+      if (this.x > canvas.width - R) { this.x = canvas.width - R; this.vx = -Math.abs(this.vx); }
+      if (this.y < R) { this.y = R; this.vy = Math.abs(this.vy); }
+      if (this.y > canvas.height - R) { this.y = canvas.height - R; this.vy = -Math.abs(this.vy); }
+      if (this.highlightTimer > 0) this.highlightTimer -= dt;
+    }
+    draw(t) {
+      const bob = Math.sin(t * 0.002 + this.bobOffset) * 2;
+      const x = this.x, y = this.y + bob;
+
+      // Check if cursor is hovering near this object
+      const hdx = mouseCanvas.x - this.x, hdy = mouseCanvas.y - this.y;
+      const hoverDist = Math.sqrt(hdx*hdx + hdy*hdy);
+      const isHovered = gamePhase === 'track' && hoverDist < this.r + 28;
+      const hoverScale = isHovered ? 1 + 0.18 * Math.max(0, 1 - hoverDist / (this.r + 28)) : 1;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(hoverScale, hoverScale);
+
+      // Hover ring
+      if (isHovered) {
+        ctx.save();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = 0.55;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r + 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Glow for highlighted (post-selection reveal)
+      if (this.highlighted && this.highlightTimer > 0) {
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 28;
+      }
+
+      // Fill
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.highlighted ? 1 : (isHovered ? 1 : 0.85);
+      drawShape(ctx, this.shape, this.r);
+
+      // Shine
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-this.r * 0.25, -this.r * 0.3, this.r * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+    hitTest(mx, my) {
+      const dx = mx - this.x, dy = my - this.y;
+      // Generous flat radius — works for all shapes
+      return Math.sqrt(dx*dx + dy*dy) < this.r + 18;
+    }
+  }
+
+  // Builds path only (no fill) — used for hit testing
+  function buildShapePath(ctx, shape, r) {
+    switch(shape) {
+      case 'circle': ctx.arc(0, 0, r, 0, Math.PI * 2); break;
+      case 'triangle':
+        ctx.moveTo(0, -r);
+        for (let i = 1; i < 3; i++) {
+          ctx.lineTo(Math.sin(i*2*Math.PI/3 - Math.PI/2)*r, -Math.cos(i*2*Math.PI/3 - Math.PI/2)*r);
+        }
+        ctx.closePath(); break;
+      case 'diamond':
+        ctx.moveTo(0,-r); ctx.lineTo(r*0.65,0); ctx.lineTo(0,r); ctx.lineTo(-r*0.65,0); ctx.closePath(); break;
+      case 'pentagon': polygon(ctx,5,r); break;
+      case 'hexagon':  polygon(ctx,6,r); break;
+      case 'star':     star(ctx,r); break;
+      case 'cross':    cross(ctx,r); break;
+      case 'arrow':    arrow(ctx,r); break;
+      case 'crescent': crescent(ctx,r); break;
+      case 'parallelogram': parallelogram(ctx,r); break;
+      default: ctx.arc(0,0,r,0,Math.PI*2);
+    }
+  }
+
+  function drawShape(ctx, shape, r) {
+    ctx.beginPath();
+    switch(shape) {
+      case 'circle':
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        break;
+      case 'triangle':
+        ctx.moveTo(0, -r);
+        for (let i = 1; i < 3; i++) {
+          ctx.lineTo(Math.sin(i * 2*Math.PI/3 - Math.PI/2) * r,
+                     -Math.cos(i * 2*Math.PI/3 - Math.PI/2) * r);
+        }
+        ctx.closePath();
+        break;
+      case 'diamond':
+        ctx.moveTo(0, -r);
+        ctx.lineTo(r * 0.65, 0);
+        ctx.lineTo(0, r);
+        ctx.lineTo(-r * 0.65, 0);
+        ctx.closePath();
+        break;
+      case 'pentagon': polygon(ctx, 5, r); break;
+      case 'hexagon':  polygon(ctx, 6, r); break;
+      case 'star':     star(ctx, r); break;
+      case 'cross':    cross(ctx, r); break;
+      case 'arrow':    arrow(ctx, r); break;
+      case 'crescent': crescent(ctx, r); break;
+      case 'parallelogram': parallelogram(ctx, r); break;
+    }
+    ctx.fill();
+  }
+
+  function polygon(ctx, n, r) {
+    ctx.moveTo(0, -r);
+    for (let i = 1; i < n; i++) {
+      const a = (i * 2 * Math.PI / n) - Math.PI / 2;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath();
+  }
+
+  function star(ctx, r) {
+    const outer = r, inner = r * 0.45;
+    for (let i = 0; i < 10; i++) {
+      const a = (i * Math.PI / 5) - Math.PI / 2;
+      const rr = i % 2 === 0 ? outer : inner;
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+  }
+
+  function cross(ctx, r) {
+    const w = r * 0.38, h = r;
+    ctx.moveTo(-w, -h); ctx.lineTo(w, -h);
+    ctx.lineTo(w, -w);  ctx.lineTo(h, -w);
+    ctx.lineTo(h, w);   ctx.lineTo(w, w);
+    ctx.lineTo(w, h);   ctx.lineTo(-w, h);
+    ctx.lineTo(-w, w);  ctx.lineTo(-h, w);
+    ctx.lineTo(-h, -w); ctx.lineTo(-w, -w);
+    ctx.closePath();
+  }
+
+  function arrow(ctx, r) {
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r * 0.7, -r * 0.1);
+    ctx.lineTo(r * 0.35, -r * 0.1);
+    ctx.lineTo(r * 0.35, r);
+    ctx.lineTo(-r * 0.35, r);
+    ctx.lineTo(-r * 0.35, -r * 0.1);
+    ctx.lineTo(-r * 0.7, -r * 0.1);
+    ctx.closePath();
+  }
+
+  function crescent(ctx, r) {
+    ctx.arc(0, 0, r, Math.PI * 0.6, Math.PI * 2.4);
+    ctx.arc(r * 0.3, -r * 0.1, r * 0.75, Math.PI * 2.4, Math.PI * 0.6, true);
+    ctx.closePath();
+  }
+
+  function parallelogram(ctx, r) {
+    const shift = r * 0.4;
+    ctx.moveTo(-r + shift, -r * 0.5);
+    ctx.lineTo(r + shift, -r * 0.5);
+    ctx.lineTo(r - shift, r * 0.5);
+    ctx.lineTo(-r - shift, r * 0.5);
+    ctx.closePath();
+  }
+
+  /* ── Game flow ── */
+  function startGame() {
+    config = DIFF[difficulty];
+    round = 0;
+    score = 0;
+    roundResults = [];
+    startAttempt();
+    showScreen('game');
+    setTimeout(() => { resizeCanvas(); nextRound(); }, 100);
+  }
+
+  function nextRound() {
+    round++;
+    hudRound.textContent = `${round}/${TOTAL_ROUNDS}`;
+    hudScore.textContent = score;
+    buildPips();
+    mousePathLength = 0;
+    mouseMoveCount = 0;
+
+    // Pick target shape & color
+    targetShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    targetColor = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+
+    // Draw actual shape on preview canvas
+    const pc = document.getElementById('preview-canvas');
+    const px = pc.getContext('2d');
+    px.clearRect(0, 0, 140, 140);
+    // soft bg circle
+    px.save();
+    px.beginPath();
+    px.arc(70, 70, 65, 0, Math.PI * 2);
+    px.fillStyle = targetColor + '22';
+    px.fill();
+    px.restore();
+    // glow
+    px.save();
+    px.shadowColor = targetColor;
+    px.shadowBlur = 28;
+    px.fillStyle = targetColor;
+    px.translate(70, 70);
+    drawShape(px, targetShape, 42);
+    px.restore();
+    // shine
+    px.save();
+    px.globalAlpha = 0.18;
+    px.fillStyle = '#fff';
+    px.beginPath();
+    px.arc(58, 55, 16, 0, Math.PI * 2);
+    px.fill();
+    px.restore();
+
+    // Update ring color
+    document.querySelector('.preview-ring').style.borderColor = targetColor + '66';
+
+    document.getElementById('mem-subtitle').textContent =
+      `Memorize the ${targetShape.charAt(0).toUpperCase()+targetShape.slice(1)} shape.`;
+
+    showScreen('memorize');
+    startCountdown(config.memTime, () => {
+      showScreen('game');
+      setTimeout(() => { resizeCanvas(); spawnObjects(); }, 50);
+    });
+  }
+
+  function startCountdown(secs, cb) {
+    const circumference = 175.9;
+    let remaining = secs;
+    countNum.textContent = remaining;
+    countCircle.style.strokeDashoffset = 0;
+    const interval = setInterval(() => {
+      remaining--;
+      countNum.textContent = remaining;
+      const offset = circumference * (1 - remaining / secs);
+      countCircle.style.strokeDashoffset = offset;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        cb();
+      }
+    }, 1000);
+  }
+
+  function spawnObjects() {
+    objects = [];
+    const n = config.objects;
+    const usedShapes = new Set();
+    const usedColors = new Set();
+
+    for (let i = 0; i < n; i++) {
+      let shape, color;
+      if (i === 0) {
+        shape = targetShape;
+        color = targetColor;
+      } else {
+        // Ensure unique shapes/colors from target
+        let attempts = 0;
+        do {
+          shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+          attempts++;
+        } while ((shape === targetShape || usedShapes.has(shape)) && attempts < 20);
+        attempts = 0;
+        do {
+          color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+          attempts++;
+        } while ((color === targetColor || usedColors.has(color)) && attempts < 20);
+      }
+      usedShapes.add(shape);
+      usedColors.add(color);
+
+      const margin = 50;
+      const x = margin + Math.random() * (canvas.width - 2 * margin);
+      const y = margin + Math.random() * (canvas.height - 2 * margin);
+      objects.push(new Obj(x, y, shape, color, i === 0));
+    }
+    targetIdx = 0;
+
+    // Show target, then shuffle, then track
+    gamePhase = 'memorize';
+    phaseOverlay.classList.remove('hidden');
+    overlayTitle.textContent = '🎯 Remember This';
+    overlaySub.textContent = 'The glowing object is your target';
+    showToast('Memorize the glowing target!');
+
+    // Draw once for static preview
+    let t0 = performance.now();
+    objects[0].highlighted = true;
+    objects[0].highlightTimer = 9999;
+    drawFrame(t0, false);
+
+    setTimeout(() => {
+      // Shuffle phase
+      gamePhase = 'shuffle';
+      overlayTitle.textContent = '🔀 Shuffling…';
+      overlaySub.textContent = 'Track your target as they mix';
+      objects.forEach(o => { o.highlighted = false; o.highlightTimer = 0; });
+      shuffleStart = performance.now();
+      requestAnimationFrame(gameLoop);
+    }, 1800);
+  }
+
+  let lastT = 0;
+  function gameLoop(t) {
+    const dt = t - lastT;
+    lastT = t;
+    update(t, dt);
+    drawFrame(t, true);
+    animFrame = requestAnimationFrame(gameLoop);
+  }
+
+  function update(t, dt) {
+    if (gamePhase === 'idle' || gamePhase === 'select') return;
+
+    objects.forEach(o => o.update(dt));
+
+    if (gamePhase === 'shuffle') {
+      const elapsed = t - shuffleStart;
+      const progress = elapsed / config.shuffleTime;
+      timerBar.style.width = `${100 - progress * 100}%`;
+      if (elapsed >= config.shuffleTime) {
+        gamePhase = 'track';
+        trackStart = t;
+        roundStartTime = t;
+        phaseOverlay.classList.add('hidden');
+        phaseText.textContent = 'Select the target!';
+        showToast('Click the target object now!');
+      }
+    } else if (gamePhase === 'track') {
+      const elapsed = t - trackStart;
+      const progress = elapsed / config.trackTime;
+      timerBar.style.width = `${100 - progress * 100}%`;
+      if (elapsed >= config.trackTime) {
+        // Time's up
+        resolveRound(false, -1);
+      }
+    }
+  }
+
+  function drawFrame(t, running) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Subtle background
+    ctx.fillStyle = 'rgba(240,244,255,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw objects
+    if (gamePhase === 'memorize' || (gamePhase === 'shuffle' && !running)) {
+      // Show target highlighted
+      objects.forEach((o, i) => {
+        if (i !== targetIdx) o.draw(t);
+      });
+      // Draw target on top with highlight ring
+      const tgt = objects[targetIdx];
+      ctx.save();
+      ctx.shadowColor = tgt.color;
+      ctx.shadowBlur = 30;
+      ctx.strokeStyle = tgt.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(tgt.x, tgt.y, tgt.r + 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      tgt.draw(t);
+    } else {
+      objects.forEach(o => o.draw(t));
+    }
+  }
+
+  /* ── Click handler ── */
+  canvas.addEventListener('click', (e) => {
+    if (gamePhase !== 'track') return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    // Ripple
+    spawnRipple(e.clientX, e.clientY, false);
+
+    // Check hits
+    for (let i = 0; i < objects.length; i++) {
+      if (objects[i].hitTest(mx, my)) {
+        const isHit = objects[i].isTarget;
+        resolveRound(isHit, i);
+        return;
+      }
+    }
+    // Missed entirely - count as wrong
+    resolveRound(false, -1);
+  });
+
+  /* ── Mouse tracking for path metric ── */
+  canvas.addEventListener('mousemove', (e) => {
+    const dx = e.clientX - lastMousePos.x;
+    const dy = e.clientY - lastMousePos.y;
+    if (gamePhase === 'track') {
+      mousePathLength += Math.sqrt(dx*dx + dy*dy);
+      mouseMoveCount++;
+    }
+    lastMousePos = { x: e.clientX, y: e.clientY };
+    // Update canvas-space cursor position
+    const rect = canvas.getBoundingClientRect();
+    mouseCanvas.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouseCanvas.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  });
+
+  // Touch move tracking
+  canvas.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    mouseCanvas.x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+    mouseCanvas.y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+  }, { passive: true });
+
+  function spawnRipple(cx, cy, isHit) {
+    const r = document.createElement('div');
+    r.className = 'ripple' + (isHit ? ' hit' : ' miss');
+    r.style.left = cx + 'px';
+    r.style.top = cy + 'px';
+    r.style.position = 'fixed';
+    document.body.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+  }
+
+  function resolveRound(correct, clickedIdx) {
+    if (gamePhase !== 'track') return;
+    cancelAnimationFrame(animFrame);
+    gamePhase = 'select';
+
+    const reactionTime = (performance.now() - roundStartTime) / 1000;
+
+    // Highlight correct
+    objects[targetIdx].highlighted = true;
+    objects[targetIdx].highlightTimer = 9999;
+
+    // Tracking score: estimate based on reaction speed + accuracy
+    const maxTime = config.trackTime / 1000;
+    const speedScore = Math.max(0, 100 - (reactionTime / maxTime) * 100);
+    const trackScore = correct ? Math.round(speedScore) : 0;
+
+    roundResults.push({ correct, reactionTime, trackScore });
+
+    if (correct) {
+      const pts = Math.round(100 + speedScore);
+      score += pts;
+      hudScore.textContent = score;
+      phaseOverlay.classList.remove('hidden');
+      overlayTitle.textContent = '✓ Correct!';
+      overlayTitle.style.color = 'var(--success)';
+      overlaySub.textContent = `+${pts} points · ${reactionTime.toFixed(1)}s`;
+      updatePip(round - 1, 'done');
+    } else {
+      phaseOverlay.classList.remove('hidden');
+      overlayTitle.textContent = '✗ Missed';
+      overlayTitle.style.color = 'var(--danger)';
+      overlaySub.textContent = `The glowing object was the target`;
+      updatePip(round - 1, 'fail');
+    }
+
+    drawFrame(performance.now(), false);
+
+    setTimeout(() => {
+      overlayTitle.style.color = '';
+      if (round < TOTAL_ROUNDS) {
+        nextRound();
+      } else {
+        showResults();
+      }
+    }, 1800);
+  }
+
+  /* ── Pips ── */
+  function buildPips() {
+    roundPips.innerHTML = '';
+    for (let i = 0; i < TOTAL_ROUNDS; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip' + (i === round - 1 ? ' active' : '');
+      pip.id = `pip-${i}`;
+      roundPips.appendChild(pip);
+    }
+  }
+  function updatePip(i, state) {
+    const pip = document.getElementById(`pip-${i}`);
+    if (pip) { pip.className = `pip ${state}`; }
+  }
+
+  /* ── Toast ── */
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+
+  /* ── Results ── */
+  function showResults() {
+    const correct = roundResults.filter(r => r.correct).length;
+    const accuracy = Math.round((correct / TOTAL_ROUNDS) * 100);
+    const avgReaction = roundResults.reduce((s, r) => s + r.reactionTime, 0) / roundResults.length;
+    const avgTrack = roundResults.reduce((s, r) => s + r.trackScore, 0) / roundResults.length;
+
+    // Sustained attention: how consistent were the results?
+    const scores = roundResults.map(r => r.correct ? 1 : 0);
+    const consistency = scores.filter(Boolean).length > 0
+      ? (1 - (scores.filter(Boolean).length === TOTAL_ROUNDS ? 0 :
+          scores.reduce((acc, v, i) => acc + (i > 0 && v !== scores[i-1] ? 1 : 0), 0) / TOTAL_ROUNDS)) * 100
+      : 0;
+    const sustained = Math.round(consistency);
+
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('res-accuracy').textContent = `${accuracy}%`;
+    document.getElementById('res-reaction').textContent = `${avgReaction.toFixed(1)}s`;
+    document.getElementById('res-tracking').textContent = `${Math.round(avgTrack)}`;
+    document.getElementById('res-sustained').textContent = `${sustained}%`;
+
+    setTimeout(() => {
+      document.getElementById('bar-accuracy').style.width = `${accuracy}%`;
+      document.getElementById('bar-reaction').style.width = `${Math.min(100, (1 - avgReaction/8)*100)}%`;
+      document.getElementById('bar-tracking').style.width = `${Math.min(100, avgTrack)}%`;
+      document.getElementById('bar-sustained').style.width = `${sustained}%`;
+    }, 300);
+
+    // Grade
+    const pct = score / (TOTAL_ROUNDS * 200);
+    let grade, gradeClass;
+    if (pct >= 0.85) { grade = 'S Rank · Exceptional'; gradeClass = 'grade-S'; }
+    else if (pct >= 0.65) { grade = 'A Rank · Great'; gradeClass = 'grade-A'; }
+    else if (pct >= 0.45) { grade = 'B Rank · Good'; gradeClass = 'grade-B'; }
+    else { grade = 'C Rank · Keep Practicing'; gradeClass = 'grade-C'; }
+
+    const gb = document.getElementById('grade-badge');
+    gb.textContent = grade;
+    gb.className = `grade-badge ${gradeClass}`;
+
+    saveResult({
+      score: score,
+      accuracy: accuracy,
+      reactionTimeMs: avgReaction * 1000,
+      rawData: { trackingScore: Math.round(avgTrack), sustainedAttention: sustained, difficulty, rounds: roundResults }
+    });
+    showScreen('results');
+  }
+
+  /* ── Touch support ── */
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    canvas.dispatchEvent(new MouseEvent('click', {
+      clientX: touch.clientX, clientY: touch.clientY
+    }));
+  }, { passive: false });
+
+})();
+</script>
+</body>
+</html>

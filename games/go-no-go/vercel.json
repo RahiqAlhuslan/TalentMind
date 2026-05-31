@@ -1,0 +1,9 @@
+{
+  "buildCommand": "",
+  "installCommand": "echo skip",
+  "outputDirectory": ".",
+  "routes": [
+    { "src": "^/$", "dest": "/go_nogo_game_.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

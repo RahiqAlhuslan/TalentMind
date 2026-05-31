@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  attempts  AssessmentAttempt[]
+  results   GameResult[]
+}
+
+model AssessmentGame {
+  id        Int      @id @default(autoincrement())
+  gameId    String   @unique
+  name      String
+  owner     String?
+  url       String?
+  category  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  attempts  AssessmentAttempt[]
+  results   GameResult[]
+}
+
+model AssessmentAttempt {
+  id          String    @id @default(cuid())
+  userId      Int?
+  gameId      String
+  status      String    @default("started")
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user        User?           @relation(fields: [userId], references: [id])
+  game        AssessmentGame? @relation(fields: [gameId], references: [gameId])
+  result      GameResult?
+}
+
+model GameResult {
+  id             Int      @id @default(autoincrement())
+  userId         Int?
+  attemptId      String?  @unique
+  gameId         String
+
+  score          Float?
+  accuracy       Float?
+  reactionTimeMs Float?
+  durationMs     Int?
+
+  rawData        Json?
+  createdAt      DateTime @default(now())
+
+  user           User?              @relation(fields: [userId], references: [id])
+  game           AssessmentGame?    @relation(fields: [gameId], references: [gameId])
+  attempt        AssessmentAttempt? @relation(fields: [attemptId], references: [id])
+}

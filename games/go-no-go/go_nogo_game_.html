@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go / No-Go Inhibition Game</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8e0f0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  #game-root {
+    width: 620px;
+    min-height: 520px;
+    background: linear-gradient(135deg, #e8f4f8 0%, #f0e8f8 50%, #f8f0e8 100%);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 40px rgba(100,80,160,0.12);
+  }
+  #start-screen, #result-screen {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 20px; padding: 40px 32px; text-align: center;
+  }
+  h1 { font-size: 28px; font-weight: 600; color: #4a3f6b; }
+  h2 { font-size: 22px; font-weight: 600; color: #4a3f6b; }
+  .subtitle { font-size: 15px; color: #6b5f8a; line-height: 1.6; max-width: 360px; }
+  .rules-box { background: rgba(255,255,255,0.75); border-radius: 14px; padding: 16px 24px; max-width: 380px; text-align: left; }
+  .rule { display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: 15px; color: #4a3f6b; }
+  .dot { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+  .dot-green { background: #4caf82; color: #fff; }
+  .dot-red { background: #e05a5a; color: #fff; }
+  .btn-start { padding: 14px 48px; border-radius: 50px; border: none; background: #6c52b8; color: #fff; font-size: 17px; font-weight: 600; cursor: pointer; transition: transform 0.1s, background 0.2s; }
+  .btn-start:hover { background: #5a42a0; }
+  .btn-start:active { transform: scale(0.97); }
+  #game-area { display: none; width: 100%; height: 520px; position: relative; }
+  .instruction-bar {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 24px; align-items: center;
+    background: rgba(255,255,255,0.75); border-radius: 50px; padding: 8px 22px;
+    font-size: 13px; color: #5a4f7a; z-index: 10; white-space: nowrap;
+  }
+  .inst-item { display: flex; align-items: center; gap: 6px; }
+  .mini-dot { width: 14px; height: 14px; border-radius: 50%; }
+  .mini-green { background: #4caf82; }
+  .mini-red { background: #e05a5a; }
+  #stimulus-btn {
+    position: absolute; width: 84px; height: 84px; border-radius: 50%;
+    border: none; cursor: pointer; font-size: 0;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.14); z-index: 5; outline: none; transition: opacity 0.08s;
+  }
+  #stimulus-btn:active { transform: scale(0.92) !important; }
+  #stimulus-btn.green-btn { background: #4caf82; }
+  #stimulus-btn.red-btn { background: #e05a5a; }
+  #stimulus-btn.hidden-btn { opacity: 0; pointer-events: none; }
+  .feedback-flash {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 32px; font-weight: 700; pointer-events: none; opacity: 0; transition: opacity 0.12s; z-index: 20;
+  }
+  .feedback-flash.show { opacity: 1; }
+  #phase-indicator {
+    position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: #7a6a9a; background: rgba(255,255,255,0.6);
+    padding: 4px 14px; border-radius: 20px; white-space: nowrap;
+  }
+  #progress-bar-wrap { position: absolute; bottom: 22px; left: 40px; right: 40px; height: 6px; background: rgba(0,0,0,0.08); border-radius: 3px; }
+  #progress-bar-fill { height: 100%; background: #6c52b8; border-radius: 3px; transition: width 0.3s; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 360px; }
+  .stat-card { background: rgba(255,255,255,0.78); border-radius: 14px; padding: 14px 16px; text-align: center; }
+  .stat-label { font-size: 12px; color: #7a6a9a; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 600; color: #4a3f6b; }
+  .stat-unit { font-size: 12px; color: #9a8aaa; font-weight: 400; }
+  .perf-bar-wrap { width: 100%; max-width: 360px; }
+  .perf-label { display: flex; justify-content: space-between; font-size: 13px; color: #6b5f8a; margin-bottom: 6px; }
+  .perf-bar-bg { height: 10px; background: rgba(0,0,0,0.08); border-radius: 5px; overflow: hidden; margin-bottom: 14px; }
+  .perf-bar-inner { height: 100%; border-radius: 5px; }
+  .verdict { font-size: 14px; color: #5a4f7a; background: rgba(255,255,255,0.65); border-radius: 12px; padding: 14px 20px; max-width: 360px; line-height: 1.6; text-align: center; }
+</style>
+</head>
+<body>
+<div id="game-root">
+
+  <div id="start-screen">
+    <h1>Go / No-Go</h1>
+    <p class="subtitle">Test your impulse control. React fast — but only when you should.</p>
+    <div class="rules-box">
+      <div class="rule"><span class="dot dot-green">✓</span><span><strong>Green circle</strong> — click or press Space</span></div>
+      <div class="rule"><span class="dot dot-red">✗</span><span><strong>Red circle</strong> — do NOT click or press Space</span></div>
+    </div>
+    <button class="btn-start" onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-area">
+    <div class="instruction-bar">
+      <div class="inst-item"><div class="mini-dot mini-green"></div><span>click green</span></div>
+      <div class="inst-item"><div class="mini-dot mini-red"></div><span>ignore red</span></div>
+    </div>
+    <button id="stimulus-btn" class="hidden-btn" onclick="handleClick()"></button>
+    <div class="feedback-flash" id="feedback"></div>
+    <div id="phase-indicator"></div>
+    <div id="progress-bar-wrap"><div id="progress-bar-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="result-screen" style="display:none">
+    <h2>Session complete</h2>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="perf-bar-wrap" id="perf-bars"></div>
+    <div class="verdict" id="verdict-text"></div>
+    <button class="btn-start" onclick="resetGame()">Play again</button>
+  </div>
+
+</div>
+<script>
+// ── GameHub Backend Integration ──
+const GAMEHUB_API = 'https://graduation-tawny-beta.vercel.app';
+const GAME_ID_HUB = 'go-no-go-game';
+let attemptId = null;
+const getUserId = () => { const p = new URLSearchParams(window.location.search); return p.get('userId') ? parseInt(p.get('userId')) : null; };
+async function startAttempt() {
+  try {
+    const res = await fetch(`${GAMEHUB_API}/api/attempts`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: GAME_ID_HUB, userId: getUserId() })
+    });
+    const data = await res.json();
+    attemptId = data.attempt?.id || null;
+  } catch(e) { console.warn('GameHub: could not start attempt', e); }
+}
+async function saveResult(payload) {
+  try {
+    await fetch(`${GAMEHUB_API}/api/results`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId: GAME_ID_HUB, attemptId, userId: getUserId(), ...payload })
+    });
+  } catch(e) { console.warn('GameHub: could not save result', e); }
+}
+
+const TOTAL_TRIALS = 36;
+const POSITIONS = [
+  {top:'12%',left:'8%'}, {top:'12%',left:'60%'}, {top:'12%',right:'8%'},
+  {top:'38%',left:'4%'}, {top:'38%',right:'4%'},
+  {top:'62%',left:'8%'}, {top:'62%',left:'55%'}, {top:'62%',right:'8%'},
+  {top:'80%',left:'25%'}, {top:'80%',right:'25%'},
+  {top:'25%',left:'30%'}, {top:'55%',left:'35%'}
+];
+
+let trials=[], trialIdx=0, responded=false, currentIsGo=false;
+let goRTs=[], falseAlarms=0, misses=0, hits=0;
+let stimTimeout=null, trialTimeout=null, lastPos=-1;
+
+function buildTrials() {
+  trials=[];
+  let goCount=Math.round(TOTAL_TRIALS*0.65);
+  let nogoCount=TOTAL_TRIALS-goCount;
+  for(let i=0;i<goCount;i++) trials.push('go');
+  for(let i=0;i<nogoCount;i++) trials.push('nogo');
+  for(let i=trials.length-1;i>0;i--){
+    let j=Math.floor(Math.random()*(i+1));
+    [trials[i],trials[j]]=[trials[j],trials[i]];
+  }
+  trialIdx=0; goRTs=[]; falseAlarms=0; misses=0; hits=0;
+}
+
+function getPhase() {
+  let p=trialIdx/TOTAL_TRIALS;
+  if(p<0.33) return {name:'warming up', speed:1.0};
+  if(p<0.66) return {name:'picking up',  speed:1.4};
+  return            {name:'at pace',     speed:1.6};
+}
+
+function getTimings() {
+  let {speed}=getPhase();
+  let isi=Math.round((120+Math.random()*100)/speed);
+  let show=Math.round(900/speed);
+  return {show, isi};
+}
+
+function pickPosition() {
+  let opts=POSITIONS.map((_,i)=>i).filter(i=>i!==lastPos);
+  let idx=opts[Math.floor(Math.random()*opts.length)];
+  lastPos=idx; return POSITIONS[idx];
+}
+
+function applyPosition(btn,pos) {
+  btn.style.top=pos.top||''; btn.style.left=pos.left||'';
+  btn.style.right=pos.right||''; btn.style.bottom=pos.bottom||'';
+}
+
+function startGame() {
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('game-area').style.display='block';
+  buildTrials();
+  startAttempt();
+  document.addEventListener('keydown',keyHandler);
+  nextTrial();
+}
+
+function keyHandler(e) {
+  if(e.code==='Space'||e.key===' '){e.preventDefault();handleClick();}
+}
+
+function nextTrial() {
+  if(trialIdx>=TOTAL_TRIALS){endGame();return;}
+  let {show,isi}=getTimings();
+  document.getElementById('phase-indicator').textContent=getPhase().name;
+  document.getElementById('progress-bar-fill').style.width=(trialIdx/TOTAL_TRIALS*100)+'%';
+  currentIsGo=trials[trialIdx]==='go';
+  responded=false;
+  stimTimeout=setTimeout(()=>showStimulus(show),isi);
+}
+
+function showStimulus(duration) {
+  let btn=document.getElementById('stimulus-btn');
+  let pos=pickPosition();
+  btn.style.top=''; btn.style.left=''; btn.style.right=''; btn.style.bottom='';
+  applyPosition(btn,pos);
+  btn.className=currentIsGo?'green-btn':'red-btn';
+  btn.style.opacity='1'; btn.style.pointerEvents='auto';
+  btn._showTime=Date.now();
+  trialTimeout=setTimeout(()=>{
+    if(!responded&&currentIsGo) misses++;
+    hideStimulus(); trialIdx++; nextTrial();
+  },duration);
+}
+
+function hideStimulus() {
+  let btn=document.getElementById('stimulus-btn');
+  btn.className='hidden-btn'; btn.style.opacity='0'; btn.style.pointerEvents='none';
+}
+
+function handleClick() {
+  if(responded) return;
+  let btn=document.getElementById('stimulus-btn');
+  if(btn.className.includes('hidden')) return;
+  responded=true; clearTimeout(trialTimeout);
+  if(currentIsGo){
+    goRTs.push(Date.now()-btn._showTime); hits++;
+    showFeedback('✓','#4caf82');
+  } else {
+    falseAlarms++; showFeedback('✗','#e05a5a');
+  }
+  hideStimulus(); trialIdx++;
+  setTimeout(nextTrial,150);
+}
+
+function showFeedback(sym,color) {
+  let el=document.getElementById('feedback');
+  el.textContent=sym; el.style.color=color;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),280);
+}
+
+function endGame() {
+  clearTimeout(stimTimeout); clearTimeout(trialTimeout);
+  document.removeEventListener('keydown',keyHandler);
+  hideStimulus();
+  document.getElementById('game-area').style.display='none';
+
+  let totalGo=trials.filter(t=>t==='go').length;
+  let totalNogo=trials.filter(t=>t==='nogo').length;
+  let acc=Math.round((hits/Math.max(1,totalGo))*100);
+  let faRate=Math.round((falseAlarms/Math.max(1,totalNogo))*100);
+  let avgRT=goRTs.length?Math.round(goRTs.reduce((a,b)=>a+b,0)/goRTs.length):0;
+  let inhibScore=Math.max(0,Math.round(100-faRate-(misses/(totalGo||1))*40));
+
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-label">avg reaction time</div><div class="stat-value">${avgRT}<span class="stat-unit"> ms</span></div></div>
+    <div class="stat-card"><div class="stat-label">go accuracy</div><div class="stat-value">${acc}<span class="stat-unit">%</span></div></div>
+    <div class="stat-card"><div class="stat-label">false alarms</div><div class="stat-value">${falseAlarms}<span class="stat-unit"> / ${totalNogo}</span></div></div>
+    <div class="stat-card"><div class="stat-label">misses</div><div class="stat-value">${misses}<span class="stat-unit"> / ${totalGo}</span></div></div>
+  `;
+  document.getElementById('perf-bars').innerHTML=`
+    <div><div class="perf-label"><span>Go accuracy</span><span>${acc}%</span></div><div class="perf-bar-bg"><div class="perf-bar-inner" style="width:${acc}%;background:#4caf82"></div></div></div>
+    <div><div class="perf-label"><span>Inhibition control</span><span>${inhibScore}%</span></div><div class="perf-bar-bg"><div class="perf-bar-inner" style="width:${inhibScore}%;background:#6c52b8"></div></div></div>
+    <div><div class="perf-label"><span>False alarm rate</span><span>${faRate}%</span></div><div class="perf-bar-bg"><div class="perf-bar-inner" style="width:${faRate}%;background:#e05a5a"></div></div></div>
+  `;
+
+  let verdict='';
+  if(inhibScore>=80&&acc>=80) verdict="Excellent impulse control. You maintained speed and accuracy under real pressure.";
+  else if(inhibScore>=60&&acc>=65) verdict="Good performance. Minor lapses in inhibition or reaction — room to sharpen.";
+  else if(faRate>35) verdict="High false alarm rate — impulsive tendency detected. Try holding back a fraction longer.";
+  else if(misses>totalGo*0.4) verdict="Many missed targets. Try staying sharply alert to green stimuli.";
+  else verdict="Mixed results — practice will improve your inhibitory control and reaction speed.";
+
+  document.getElementById('verdict-text').textContent=verdict;
+  saveResult({
+    score: inhibScore,
+    accuracy: acc,
+    reactionTimeMs: avgRT,
+    rawData: { falseAlarms, misses, hits, totalGo, totalNogo, inhibScore, goAccuracy: acc, falseAlarmRate: faRate }
+  });
+  document.getElementById('result-screen').style.display='flex';
+}
+
+function resetGame() {
+  document.getElementById('result-screen').style.display='none';
+  document.getElementById('start-screen').style.display='flex';
+}
+</script>
+</body>
+</html>
